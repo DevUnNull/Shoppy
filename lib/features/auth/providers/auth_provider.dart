@@ -83,16 +83,26 @@ class AuthNotifier extends Notifier<AuthState> {
     }
   }
 
-  /// Đăng ký rồi tự đăng nhập. Trả về `false` nếu đăng ký xong nhưng
-  /// đăng nhập tự động thất bại (người dùng cần đăng nhập thủ công).
-  Future<bool> register(RegisterRequest request) async {
-    await _service.register(request);
-    try {
-      await login(email: request.email, password: request.password);
-      return true;
-    } catch (_) {
-      return false;
-    }
+  /// Đăng ký tài khoản. Backend tạo tài khoản ở trạng thái INACTIVE và gửi
+  /// email kích hoạt, nên KHÔNG tự đăng nhập sau khi đăng ký.
+  Future<void> register(RegisterRequest request) => _service.register(request);
+
+  /// Tải lại hồ sơ (vd. sau khi nạp ví / đặt hàng bằng ví / sửa hồ sơ).
+  Future<User?> refreshProfile() async {
+    final token = state.token;
+    if (!state.isLoggedIn || token == null) return null;
+    final fresh = await _service.getProfile();
+    if (!ref.mounted || state.token != token) return null;
+    replaceUser(fresh);
+    return fresh;
+  }
+
+  /// Cập nhật user hiện tại (và bản lưu trên máy) bằng dữ liệu mới.
+  void replaceUser(User user) {
+    final token = state.token;
+    if (token == null) return;
+    state = AuthState.authenticated(user, token);
+    ref.read(tokenStorageProvider).save(token: token, user: user.toJson());
   }
 
   Future<void> logout() async {

@@ -1,13 +1,22 @@
 import 'package:flutter/material.dart';
 
+import '../features/account/widgets/account_shell.dart';
 import '../features/auth/screens/forgot_password_screen.dart';
 import '../features/auth/screens/login_screen.dart';
 import '../features/auth/screens/register_screen.dart';
 import '../features/catalog/screens/category_screen.dart';
 import '../features/catalog/screens/product_detail_screen.dart';
+import '../features/cart/providers/cart_provider.dart';
 import '../features/catalog/screens/search_screen.dart';
+import '../features/checkout/screens/checkout_screen.dart';
+import '../features/notifications/screens/notifications_screen.dart';
+import '../features/orders/screens/my_orders_screen.dart';
+import '../features/orders/screens/order_detail_screen.dart';
+import '../features/partner/screens/partner_register_screen.dart';
+import '../features/profile/screens/profile_screen.dart';
 import '../features/seller_orders/screens/seller_orders_screen.dart';
 import '../features/shop/screens/shop_screen.dart';
+import '../features/wallet/screens/wallet_screen.dart';
 
 /// Điều hướng tập trung cho phân hệ Customer.
 abstract final class AppRouter {
@@ -59,4 +68,38 @@ abstract final class AppRouter {
 
   static void backToHome(BuildContext context) =>
       Navigator.of(context).popUntil((route) => route.isFirst);
+
+  // ---------------- FE2: Checkout, Đơn mua, Ví, Hồ sơ ----------------
+
+  static Future<void> checkout(BuildContext context, List<CartItem> items) =>
+      _push(context, CheckoutScreen(items: items));
+
+  static Widget _accountPage(AccountSection section) => switch (section) {
+    AccountSection.profile => const ProfileScreen(),
+    AccountSection.password => const ProfileScreen(changePassword: true),
+    AccountSection.orders => const MyOrdersScreen(),
+    AccountSection.wallet => const WalletScreen(),
+    AccountSection.notifications => const NotificationsScreen(),
+    AccountSection.partner => const PartnerRegisterScreen(),
+  };
+
+  /// Mở một mục trong trang tài khoản. `replace: true` khi chuyển mục từ
+  /// sidebar để không chồng nhiều trang tài khoản lên nhau.
+  static Future<void> account(
+    BuildContext context,
+    AccountSection section, {
+    bool replace = false,
+  }) => replace
+      ? _replace(context, _accountPage(section))
+      : _push(context, _accountPage(section));
+
+  static Future<void> orderDetail(BuildContext context, int orderId) =>
+      _push(context, OrderDetailScreen(orderId: orderId));
+
+  /// Sau khi đặt hàng: về trang chủ rồi mở "Đơn mua".
+  static void ordersAfterCheckout(BuildContext context) {
+    final navigator = Navigator.of(context);
+    navigator.popUntil((route) => route.isFirst);
+    navigator.push(MaterialPageRoute(builder: (_) => const MyOrdersScreen()));
+  }
 }

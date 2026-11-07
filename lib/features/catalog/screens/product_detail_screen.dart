@@ -9,7 +9,6 @@ import '../../../core/widgets/app_toast.dart';
 import '../../../core/widgets/content_container.dart';
 import '../../../core/widgets/skeleton.dart';
 import '../../../core/widgets/state_views.dart';
-import '../../../shared/widgets/cart_sheet.dart';
 import '../../../shared/widgets/shoppy_header.dart';
 import '../../auth/providers/auth_provider.dart';
 import '../../cart/providers/cart_provider.dart';
@@ -180,20 +179,27 @@ class _DetailBodyState extends ConsumerState<_DetailBody> {
       final loggedIn = await AppRouter.login(context);
       if (!loggedIn || !mounted) return;
     }
+    if (buyNow) {
+      // "Mua ngay": thanh toán đúng sản phẩm + số lượng đang chọn.
+      AppRouter.checkout(context, [
+        CartItem(
+          product: _product,
+          variant: _selectedVariant,
+          quantity: _quantity,
+        ),
+      ]);
+      return;
+    }
     final inCart = ref
         .read(cartProvider.notifier)
         .add(_product, _selectedVariant, _quantity, maxStock: _stock);
     if (!mounted) return;
-    if (buyNow) {
-      showCartSheet(context);
-    } else {
-      AppToast.success(
-        context,
-        inCart < _quantity
-            ? 'Đã đạt số lượng tối đa trong kho ($inCart)'
-            : 'Sản phẩm đã được thêm vào Giỏ hàng',
-      );
-    }
+    AppToast.success(
+      context,
+      inCart < _quantity
+          ? 'Đã đạt số lượng tối đa trong kho ($inCart)'
+          : 'Sản phẩm đã được thêm vào Giỏ hàng',
+    );
   }
 
   @override

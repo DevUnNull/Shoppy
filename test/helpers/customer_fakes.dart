@@ -20,14 +20,15 @@ Product product(
   int? categoryId = 1,
   int? sold,
   String? name,
+  int shopId = 2,
 }) => Product(
   id: id,
   name: name ?? 'Sản phẩm $id',
   minPrice: price,
   maxPrice: price,
   totalStock: stock,
-  shopId: 2,
-  shopName: 'Shop test',
+  shopId: shopId,
+  shopName: 'Shop $shopId',
   categoryId: categoryId,
   soldCount: sold,
 );
@@ -85,7 +86,10 @@ class FakeProductService extends ProductService {
 }
 
 class FakeAuthService extends AuthService {
-  FakeAuthService() : super(dummyClient());
+  FakeAuthService({this.profile = user}) : super(dummyClient());
+
+  /// Hồ sơ trả về từ getProfile (tuỳ chỉnh số dư ví, vai trò…).
+  User profile;
 
   String? loginError;
   int logoutCalls = 0;
@@ -108,7 +112,7 @@ class FakeAuthService extends AuthService {
   }
 
   @override
-  Future<User> getProfile() async => user;
+  Future<User> getProfile() async => profile;
 
   @override
   Future<void> register(RegisterRequest request) async => registered = request;

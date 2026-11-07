@@ -8,10 +8,12 @@ import '../../core/widgets/app_toast.dart';
 import '../../core/widgets/content_container.dart';
 import '../../core/widgets/shoppy_logo.dart';
 import '../../core/widgets/skeleton.dart';
+import '../../features/account/widgets/account_shell.dart';
 import '../../features/auth/models/user.dart';
 import '../../features/auth/providers/auth_provider.dart';
 import '../../features/cart/providers/cart_provider.dart';
 import '../../features/catalog/providers/product_list_provider.dart';
+import '../../features/notifications/providers/notification_providers.dart';
 import 'cart_sheet.dart';
 
 /// Header cam kiểu Shopee: logo, thanh tìm kiếm lớn + gợi ý trending,
@@ -103,6 +105,7 @@ class _ShoppyHeaderState extends ConsumerState<ShoppyHeader> {
                   SizedBox(width: compact ? 4 : 24),
                   Expanded(child: _searchBox()),
                   SizedBox(width: compact ? 0 : 16),
+                  const _BellButton(),
                   const _CartButton(),
                   if (compact) _AccountArea(compact: true),
                 ],
@@ -182,6 +185,33 @@ class _ShoppyHeaderState extends ConsumerState<ShoppyHeader> {
             ),
           ),
         ],
+      ),
+    );
+  }
+}
+
+class _BellButton extends ConsumerWidget {
+  const _BellButton();
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    if (!ref.watch(authProvider.select((s) => s.isLoggedIn))) {
+      return const SizedBox.shrink();
+    }
+    final count = ref.watch(unreadCountProvider).value ?? 0;
+    return IconButton(
+      tooltip: 'Thông báo',
+      onPressed: () => AppRouter.account(context, AccountSection.notifications),
+      icon: Badge(
+        isLabelVisible: count > 0,
+        backgroundColor: Colors.white,
+        textColor: AppColors.primary,
+        label: Text(count > 99 ? '99+' : '$count'),
+        child: const Icon(
+          Icons.notifications_none,
+          color: Colors.white,
+          size: 28,
+        ),
       ),
     );
   }
@@ -281,20 +311,62 @@ class _UserMenu extends ConsumerWidget {
       position: PopupMenuPosition.under,
       onSelected: (value) async {
         switch (value) {
-          case 'profile':
-            _showProfile(context);
           case 'seller':
             AppRouter.sellerChannel(context);
           case 'logout':
             await ref.read(authProvider.notifier).logout();
             if (context.mounted) AppToast.success(context, 'Đã đăng xuất');
+          default:
+            final section = AccountSection.values.byName(value);
+            AppRouter.account(context, section);
         }
       },
       itemBuilder: (_) => [
-        const PopupMenuItem(value: 'profile', child: Text('Tài khoản của tôi')),
+        for (final s in [
+          AccountSection.profile,
+          AccountSection.orders,
+          AccountSection.wallet,
+          AccountSection.notifications,
+          AccountSection.partner,
+        ])
+          PopupMenuItem(
+            value: s.name,
+            child: Row(
+              children: [
+                Icon(s.icon, size: 18, color: AppColors.body),
+                const SizedBox(width: 10),
+                Text(
+                  s == AccountSection.profile ? 'Tài khoản của tôi' : s.label,
+                ),
+              ],
+            ),
+          ),
         if (user.isSeller)
-          const PopupMenuItem(value: 'seller', child: Text('Kênh người bán')),
-        const PopupMenuItem(value: 'logout', child: Text('Đăng xuất')),
+          const PopupMenuItem(
+            value: 'seller',
+            child: Row(
+              children: [
+                Icon(
+                  Icons.store_mall_directory_outlined,
+                  size: 18,
+                  color: AppColors.body,
+                ),
+                SizedBox(width: 10),
+                Text('Kênh người bán'),
+              ],
+            ),
+          ),
+        const PopupMenuDivider(),
+        const PopupMenuItem(
+          value: 'logout',
+          child: Row(
+            children: [
+              Icon(Icons.logout, size: 18, color: AppColors.body),
+              SizedBox(width: 10),
+              Text('Đăng xuất'),
+            ],
+          ),
+        ),
       ],
       child: Padding(
         padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
@@ -318,46 +390,4 @@ class _UserMenu extends ConsumerWidget {
       ),
     );
   }
-
-  void _showProfile(BuildContext context) {
-    showDialog<void>(
-      context: context,
-      builder: (context) => AlertDialog(
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(2)),
-        title: const Text('Hồ sơ của tôi'),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            _row('Họ và tên', user.fullName),
-            _row('Email', user.email),
-            _row('Số điện thoại', user.phone ?? '—'),
-            _row('Vai trò', user.role.name.toUpperCase()),
-          ],
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.of(context).pop(),
-            child: const Text('Đóng'),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _row(String label, String value) => Padding(
-    padding: const EdgeInsets.symmetric(vertical: 4),
-    child: Row(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        SizedBox(
-          width: 110,
-          child: Text(label, style: const TextStyle(color: AppColors.caption)),
-        ),
-        Expanded(
-          child: Text(value, style: const TextStyle(color: AppColors.title)),
-        ),
-      ],
-    ),
-  );
 }

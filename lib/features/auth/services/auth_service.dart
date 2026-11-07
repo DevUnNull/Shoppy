@@ -26,11 +26,23 @@ class AuthService {
     required String email,
     required String password,
   }) async {
-    final data = await _client.post(
-      '/auth/login',
-      body: {'email': email.trim(), 'password': password},
-    );
-    return _parseLogin(data);
+    try {
+      final data = await _client.post(
+        '/auth/login',
+        body: {'email': email.trim(), 'password': password},
+      );
+      return _parseLogin(data);
+    } on ApiException catch (e) {
+      // Backend trả 403 (body rỗng) cho tài khoản chưa kích hoạt / bị khoá.
+      if (e.statusCode == 403) {
+        throw const ApiException(
+          'Tài khoản chưa được kích hoạt hoặc đã bị khoá. '
+          'Vui lòng kiểm tra email kích hoạt.',
+          statusCode: 403,
+        );
+      }
+      rethrow;
+    }
   }
 
   /// `POST /users/register` — multipart: fullName, email, password, phone, avatar.

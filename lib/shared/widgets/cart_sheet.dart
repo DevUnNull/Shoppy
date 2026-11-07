@@ -1,10 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../app/app_router.dart';
 import '../../core/theme/app_colors.dart';
 import '../../core/utils/formatters.dart';
 import '../../core/widgets/app_network_image.dart';
-import '../../core/widgets/app_toast.dart';
 import '../../core/widgets/state_views.dart';
 import '../../features/cart/providers/cart_provider.dart';
 
@@ -128,10 +128,12 @@ class _CartSheet extends ConsumerWidget {
                       ),
                     ),
                     FilledButton(
-                      onPressed: () => AppToast.info(
-                        context,
-                        'Thanh toán thuộc phân hệ Checkout (FE khác) và sẽ được nối API sau.',
-                      ),
+                      onPressed: () {
+                        // Lấy navigator trước khi đóng sheet (context sheet sẽ bị huỷ).
+                        final navigator = Navigator.of(context);
+                        navigator.pop();
+                        AppRouter.checkout(navigator.context, items);
+                      },
                       child: Text('Mua hàng (${items.length})'),
                     ),
                   ],

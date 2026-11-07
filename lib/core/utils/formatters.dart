@@ -30,3 +30,25 @@ String formatJoinedAgo(DateTime date, {DateTime? now}) {
   if (diff.inDays >= 1) return '${diff.inDays} ngày trước';
   return 'Hôm nay';
 }
+
+/// "14:05 07/11/2026"
+String formatDateTime(DateTime date) =>
+    '${date.hour.toString().padLeft(2, '0')}:'
+    '${date.minute.toString().padLeft(2, '0')} ${formatDate(date)}';
+
+/// "Vừa xong", "5 phút trước", "3 giờ trước", hoặc ngày giờ đầy đủ.
+String formatRelative(DateTime date, {DateTime? now}) {
+  final diff = (now ?? DateTime.now()).difference(date);
+  if (diff.inMinutes < 1) return 'Vừa xong';
+  if (diff.inHours < 1) return '${diff.inMinutes} phút trước';
+  if (diff.inDays < 1) return '${diff.inHours} giờ trước';
+  if (diff.inDays < 7) return '${diff.inDays} ngày trước';
+  return formatDateTime(date);
+}
+
+/// "a***@gmail.com" — che email giống Shopee.
+String maskEmail(String email) {
+  final at = email.indexOf('@');
+  if (at <= 1) return email;
+  return '${email.substring(0, 2)}${'*' * (at - 2).clamp(1, 6)}${email.substring(at)}';
+}
