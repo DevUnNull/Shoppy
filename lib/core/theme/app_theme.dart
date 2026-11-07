@@ -18,6 +18,7 @@ abstract final class AppTheme {
       ),
       scaffoldBackgroundColor: AppColors.background,
       dividerColor: AppColors.divider,
+      dividerTheme: const DividerThemeData(color: AppColors.border, space: 1),
       appBarTheme: const AppBarTheme(
         backgroundColor: Colors.white,
         foregroundColor: AppColors.title,
@@ -114,6 +115,26 @@ abstract final class AppTheme {
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(radius),
         ),
+      ),
+      // Material 3 mặc định ám màu primary lên nền dialog/menu -> ép về trắng.
+      dialogTheme: DialogThemeData(
+        backgroundColor: Colors.white,
+        surfaceTintColor: Colors.transparent,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(radius),
+        ),
+      ),
+      popupMenuTheme: const PopupMenuThemeData(
+        color: Colors.white,
+        surfaceTintColor: Colors.transparent,
+      ),
+      bottomSheetTheme: const BottomSheetThemeData(
+        backgroundColor: Colors.white,
+        surfaceTintColor: Colors.transparent,
+      ),
+      datePickerTheme: const DatePickerThemeData(
+        backgroundColor: Colors.white,
+        surfaceTintColor: Colors.transparent,
       ),
       tabBarTheme: const TabBarThemeData(
         labelColor: AppColors.primary,

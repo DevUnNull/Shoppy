@@ -41,7 +41,7 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
     if (!_formKey.currentState!.validate()) return;
     setState(() => _loading = true);
     try {
-      final autoLoggedIn = await ref
+      await ref
           .read(authProvider.notifier)
           .register(
             RegisterRequest(
@@ -54,16 +54,31 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
             ),
           );
       if (!mounted) return;
-      if (autoLoggedIn) {
-        AppToast.success(
-          context,
-          'Đăng ký thành công! Chào mừng bạn đến Shoppy',
-        );
-        AppRouter.backToHome(context);
-      } else {
-        AppToast.success(context, 'Đăng ký thành công! Vui lòng đăng nhập');
-        AppRouter.login(context, replace: true);
-      }
+      // Backend tạo tài khoản INACTIVE + gửi email kích hoạt.
+      await showDialog<void>(
+        context: context,
+        builder: (context) => AlertDialog(
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(2)),
+          icon: const Icon(
+            Icons.mark_email_read_outlined,
+            color: AppColors.success,
+            size: 48,
+          ),
+          title: const Text('Đăng ký thành công!'),
+          content: Text(
+            'Chúng tôi đã gửi email kích hoạt tới ${_email.text.trim()}. '
+            'Vui lòng mở email và kích hoạt tài khoản trước khi đăng nhập.',
+            textAlign: TextAlign.center,
+          ),
+          actions: [
+            FilledButton(
+              onPressed: () => Navigator.of(context).pop(),
+              child: const Text('Đến trang đăng nhập'),
+            ),
+          ],
+        ),
+      );
+      if (mounted) AppRouter.login(context, replace: true);
     } catch (e) {
       if (mounted) AppToast.error(context, e.toString());
     } finally {

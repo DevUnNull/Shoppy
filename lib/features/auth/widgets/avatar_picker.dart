@@ -15,12 +15,28 @@ class PickedAvatar {
 
 /// Chọn ảnh đại diện từ thư viện, hiển thị preview tròn.
 class AvatarPicker extends StatelessWidget {
-  const AvatarPicker({super.key, required this.value, required this.onChanged});
+  const AvatarPicker({
+    super.key,
+    required this.value,
+    required this.onChanged,
+    this.maxBytes = 5 * 1024 * 1024,
+    this.currentUrl,
+    this.size = 96,
+  });
 
   final PickedAvatar? value;
   final ValueChanged<PickedAvatar?> onChanged;
 
-  static const _maxBytes = 5 * 1024 * 1024;
+  /// Dung lượng tối đa cho phép (Đăng ký: 5MB, Hồ sơ: 1MB).
+  final int maxBytes;
+
+  /// Ảnh hiện tại trên server (màn Hồ sơ, khi chưa chọn ảnh mới).
+  final String? currentUrl;
+  final double size;
+
+  String get _limitLabel => maxBytes >= 1024 * 1024
+      ? '${maxBytes ~/ (1024 * 1024)}MB'
+      : '${maxBytes ~/ 1024}KB';
 
   Future<void> _pick(BuildContext context) async {
     try {
@@ -33,8 +49,18 @@ class AvatarPicker extends StatelessWidget {
       if (file == null) return;
       final bytes = await file.readAsBytes();
       if (!context.mounted) return;
-      if (bytes.lengthInBytes > _maxBytes) {
-        AppToast.error(context, 'Ảnh vượt quá 5MB, vui lòng chọn ảnh khác');
+      final name = file.name.toLowerCase();
+      if (!(name.endsWith('.jpg') ||
+          name.endsWith('.jpeg') ||
+          name.endsWith('.png'))) {
+        AppToast.error(context, 'Chỉ hỗ trợ ảnh định dạng JPEG hoặc PNG');
+        return;
+      }
+      if (bytes.lengthInBytes > maxBytes) {
+        AppToast.error(
+          context,
+          'Ảnh vượt quá $_limitLabel, vui lòng chọn ảnh khác',
+        );
         return;
       }
       onChanged(PickedAvatar(bytes: bytes, fileName: file.name));
@@ -51,6 +77,9 @@ class AvatarPicker extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final avatar = value;
+    final ImageProvider? image = avatar != null
+        ? MemoryImage(avatar.bytes)
+        : (currentUrl != null ? NetworkImage(currentUrl!) : null);
     return Column(
       children: [
         GestureDetector(
@@ -58,23 +87,20 @@ class AvatarPicker extends StatelessWidget {
           child: Stack(
             children: [
               Container(
-                width: 96,
-                height: 96,
+                width: size,
+                height: size,
                 decoration: BoxDecoration(
                   shape: BoxShape.circle,
                   color: AppColors.background,
                   border: Border.all(color: AppColors.border),
-                  image: avatar == null
+                  image: image == null
                       ? null
-                      : DecorationImage(
-                          image: MemoryImage(avatar.bytes),
-                          fit: BoxFit.cover,
-                        ),
+                      : DecorationImage(image: image, fit: BoxFit.cover),
                 ),
-                child: avatar == null
-                    ? const Icon(
+                child: image == null
+                    ? Icon(
                         Icons.person,
-                        size: 56,
+                        size: size * 0.58,
                         color: AppColors.border,
                       )
                     : null,
@@ -102,23 +128,31 @@ class AvatarPicker extends StatelessWidget {
         Row(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            TextButton(
+            OutlinedButton(
               onPressed: () => _pick(context),
-              child: Text(avatar == null ? 'Chọn ảnh đại diện' : 'Đổi ảnh'),
+              style: OutlinedButton.styleFrom(
+                foregroundColor: AppColors.title,
+                backgroundColor: Colors.white,
+                side: const BorderSide(color: AppColors.border),
+                minimumSize: const Size(0, 36),
+              ),
+              child: Text(avatar == null ? 'Chọn ảnh' : 'Đổi ảnh'),
             ),
             if (avatar != null)
               TextButton(
                 onPressed: () => onChanged(null),
                 child: const Text(
-                  'Xoá',
+                  'Bỏ chọn',
                   style: TextStyle(color: AppColors.caption),
                 ),
               ),
           ],
         ),
-        const Text(
-          'Dung lượng tối đa 5MB · JPEG, PNG',
-          style: TextStyle(color: AppColors.caption, fontSize: 12),
+        const SizedBox(height: 4),
+        Text(
+          'Dung lượng tối đa $_limitLabel\nĐịnh dạng: .JPEG, .PNG',
+          textAlign: TextAlign.center,
+          style: const TextStyle(color: AppColors.caption, fontSize: 12),
         ),
       ],
     );

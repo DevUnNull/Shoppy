@@ -18,6 +18,7 @@ abstract final class AppColors {
   static const divider = Color(0xFFF0F0F0);
 
   static const success = Color(0xFF26AA99);
+  static const pending = Color(0xFFFFB800); // vàng chờ xử lý
   static const star = Color(0xFFFFCE3D);
   static const skeleton = Color(0xFFE9E9E9);
 }
