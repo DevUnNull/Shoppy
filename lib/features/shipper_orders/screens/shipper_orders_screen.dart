@@ -5,6 +5,7 @@ import '../providers/shipper_orders_provider.dart';
 import '../widgets/shipper_order_card.dart';
 import '../widgets/shipper_order_widgets.dart';
 import 'shipper_order_detail_screen.dart';
+import 'shipper_cod_screen.dart';
 
 class ShipperOrdersScreen extends ConsumerStatefulWidget {
   const ShipperOrdersScreen({super.key});
@@ -59,6 +60,15 @@ class _ShipperOrdersScreenState extends ConsumerState<ShipperOrdersScreen> {
             _ => 'Đơn chờ nhận',
           }),
           actions: [
+            IconButton(
+              tooltip: 'Tiền thu hộ COD',
+              icon: const Icon(Icons.account_balance_wallet_outlined),
+              onPressed: () => Navigator.of(context).push(
+                MaterialPageRoute<void>(
+                  builder: (context) => const ShipperCodScreen(),
+                ),
+              ),
+            ),
             IconButton(
               tooltip: 'Làm mới',
               onPressed: _refresh,

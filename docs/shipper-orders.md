@@ -47,8 +47,28 @@ Nếu chạy Flutter Web, backend cần cho phép CORS đối với GET, PUT, OP
 - Sau timeout, kiểm tra trạng thái. Nếu đã DELIVERED, xác minh trong lịch sử của token trước khi báo thành công. Nếu không kiểm tra được, chỉ cho tải lại trạng thái trước khi thử tiếp.
 - Không ghi số dư hay giao dịch COD từ FE. Chỉ invalidate các provider dữ liệu sau thao tác COD.
 
-## Kết nối màn COD sau này
+## Quản lý và nộp tiền COD
 
-Màn COD riêng chưa được tạo trong phần này. Khi triển khai, watch `shipperCodBalanceProvider` và `shipperCodTransactionsProvider` trong `providers/shipper_cod_provider.dart`. Chúng đọc đúng hai endpoint balance/transactions và trả nguyên data; chưa suy đoán model giao dịch.
+Bấm biểu tượng ví **Tiền thu hộ COD** ở góc trên màn Shipper. Màn quản lý hiển thị tổng đã thu, tổng đã nộp và số tiền đang giữ từ API `GET /shipper/cod/balance`.
 
-Các provider autoDispose tải mới khi mở màn; xác nhận giao COD sẽ invalidate cả hai để làm mới cả khi màn đã được mở. Backend chịu trách nhiệm ghi nhận tiền đúng một lần, chỉ đối với COD. Kiểm thử hiện dùng BE giả lập, chưa gửi delivered lên backend thật.
+Lịch sử dùng `GET /shipper/cod/transactions`; bộ lọc Thu tiền/Nộp tiền gửi `type=COLLECTION` hoặc `type=REMITTANCE`. Tất cả không gửi type. Mỗi bộ lọc có state riêng để response cũ không ghi đè bộ lọc mới.
+
+Nút **Nộp tiền COD** mở form số tiền và ghi chú. Nhập VND nguyên, không dùng dấu phân cách. Số tiền tối thiểu 1.000 VND, không vượt số dư mới nhất. Nếu số dư dưới mức tối thiểu, nút bị khóa và có giải thích. Hộp thoại xác nhận hiển thị đúng số tiền và ghi chú trước POST.
+
+`POST /shipper/cod/remittance` nộp tiền COD về công ty vận chuyển, gửi JSON gồm amount dạng số và note bằng token Shipper. Công ty nhận tiền do backend xác định theo tài xế; không thêm shipCompanyId vào body.
+
+Đã tích hợp response thành công mẫu: data là giao dịch COD, orderId có thể null. App kiểm tra type=REMITTANCE, status=COMPLETED và amount khớp số tiền gửi; sau đó hiển thị mã giao dịch, tải lại balance và transactions từ backend. Không tự sửa số dư. Response thiếu hoặc chưa xác nhận hoàn tất sẽ được kiểm tra lại qua số dư/lịch sử trước khi cho phép gửi tiếp. Lỗi 403 giữ nguyên form và dữ liệu nhập. Kiểm thử dùng response mẫu và backend giả lập; chưa thực hiện POST tiền thật từ app.
+
+Các màn dùng model `CodBalance`, `CodTransaction` và provider `codBalanceProvider`, `codTransactionsProvider`. Xác nhận giao COD cũng invalidate các provider này. Provider data thô trước đó vẫn được giữ cho các luồng đã có.
+
+### Khi timeout hoặc kết quả không rõ
+
+App không tự gửi lại POST. Trước POST, app lưu ảnh chụp số dư và các ID giao dịch trong phiên. Khi không rõ kết quả, app đọc lại balance và transactions:
+
+- Một REMITTANCE COMPLETED mới có cùng số tiền/ghi chú, cùng với tổng đã nộp tăng tương ứng: thông báo đã có giao dịch tương ứng và không gửi lại.
+- Chưa xác định được: giữ nội dung form, khóa nút nộp, cho kiểm tra lại hoặc xem lịch sử. Đóng/mở form trong cùng phiên không xóa khóa.
+- Từ chối rõ ràng như HTTP 400/401/403/422 hoặc status error: cho sửa/thử lại thủ công, không tự gửi lại.
+
+Đối chiếu amount/note không phải mã idempotency của backend. Khóa hiện giữ trong phiên ứng dụng, không bảo đảm qua việc khởi động lại app. Để bảo đảm chống trùng giữa nhiều thiết bị/lần khởi động, backend cần hỗ trợ mã tham chiếu/idempotency và xử lý nguyên tử. Kiểm thử nộp tiền hiện dùng BE giả lập; không gửi tiền lên backend thật.
+
+Nếu dùng Flutter Web, backend cần cho phép thêm POST và Content-Type trong cấu hình CORS.

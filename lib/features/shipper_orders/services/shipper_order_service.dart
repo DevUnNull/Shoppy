@@ -7,10 +7,12 @@ class ShipperOrderException implements Exception {
     this.message, {
     this.statusCode,
     this.isTimeout = false,
+    this.isRejected = false,
   });
   final String message;
   final int? statusCode;
   final bool isTimeout;
+  final bool isRejected;
   @override
   String toString() => message;
 }
@@ -49,13 +51,22 @@ class ShipperOrderService {
   }
 
   Future<dynamic> getCodBalance() => _request('GET', '/shipper/cod/balance');
-  Future<dynamic> getCodTransactions() =>
-      _request('GET', '/shipper/cod/transactions');
+  Future<dynamic> getCodTransactions({String? type}) => _request(
+    'GET',
+    '/shipper/cod/transactions',
+    query: type == null ? null : {'type': type},
+  );
+  Future<dynamic> remitCod(int amount, String note) => _request(
+    'POST',
+    '/shipper/cod/remittance',
+    body: {'amount': amount, 'note': note},
+  );
 
   Future<dynamic> _request(
     String method,
     String path, {
     Map<String, dynamic>? query,
+    Map<String, dynamic>? body,
   }) async {
     if (_token.trim().isEmpty) {
       throw const ShipperOrderException(
@@ -66,23 +77,27 @@ class ShipperOrderService {
       final response = await _dio.request<dynamic>(
         path,
         queryParameters: query,
+        data: body,
         options: Options(
           method: method,
+          contentType: body == null ? null : Headers.jsonContentType,
           headers: {
             'Accept': 'application/json',
             'Authorization': 'Bearer ${_token.trim()}',
           },
         ),
       );
-      if (method == 'PUT' && response.statusCode == 204) return null;
-      final body = response.data;
-      if (body is! Map || body['status'] != 'success') {
+      if ((method == 'PUT' || method == 'POST') && response.statusCode == 204) {
+        return null;
+      }
+      final responseBody = response.data;
+      if (responseBody is! Map || responseBody['status'] != 'success') {
         throw ShipperOrderException(
-          _message(body) ??
-              'Yêu cầu xử lý đơn giao thất bại. Vui lòng thử lại.',
+          _message(responseBody) ?? 'Yêu cầu thất bại. Vui lòng thử lại.',
+          isRejected: responseBody is Map && responseBody['status'] == 'error',
         );
       }
-      return body['data'];
+      return responseBody['data'];
     } on DioException catch (error) {
       final code = error.response?.statusCode;
       if (code == 401) {
@@ -93,7 +108,7 @@ class ShipperOrderService {
       }
       if (code == 403) {
         throw const ShipperOrderException(
-          'Không đủ quyền. Hãy dùng token SHIPPER; tài xế chỉ được thao tác đơn thuộc hãng của mình.',
+          'Không đủ quyền thực hiện thao tác. Hãy kiểm tra token SHIPPER và quyền API phía backend.',
           statusCode: 403,
         );
       }

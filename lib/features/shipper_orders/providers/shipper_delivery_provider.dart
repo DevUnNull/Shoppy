@@ -161,5 +161,7 @@ class ShipperDeliveryNotifier extends Notifier<ShipperDeliveryState> {
   void _refreshCod() {
     ref.invalidate(shipperCodBalanceProvider);
     ref.invalidate(shipperCodTransactionsProvider);
+    ref.invalidate(codBalanceProvider);
+    ref.invalidate(codTransactionsProvider);
   }
 }
