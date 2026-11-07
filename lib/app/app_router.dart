@@ -15,6 +15,7 @@ import '../features/orders/screens/order_detail_screen.dart';
 import '../features/partner/screens/partner_register_screen.dart';
 import '../features/profile/screens/profile_screen.dart';
 import '../features/seller_orders/screens/seller_orders_screen.dart';
+import '../features/shipper_orders/screens/shipper_orders_screen.dart';
 import '../features/shop/screens/shop_screen.dart';
 import '../features/wallet/screens/wallet_screen.dart';
 
@@ -65,6 +66,9 @@ abstract final class AppRouter {
 
   static Future<void> sellerChannel(BuildContext context) =>
       _push(context, const SellerOrdersScreen());
+
+  static Future<void> shipperChannel(BuildContext context) =>
+      _push(context, const ShipperOrdersScreen());
 
   static void backToHome(BuildContext context) =>
       Navigator.of(context).popUntil((route) => route.isFirst);

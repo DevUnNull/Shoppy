@@ -16,6 +16,9 @@ class LoginResult {
 /// Tên field file ảnh đại diện trong multipart `POST /users/register`.
 const registerAvatarField = 'avatar';
 
+/// Thông báo mặc định của ApiClient khi 403 không kèm message.
+const _generic403 = 'Bạn không có quyền thực hiện thao tác này.';
+
 class AuthService {
   AuthService(this._client);
 
@@ -33,8 +36,9 @@ class AuthService {
       );
       return _parseLogin(data);
     } on ApiException catch (e) {
-      // Backend trả 403 (body rỗng) cho tài khoản chưa kích hoạt / bị khoá.
-      if (e.statusCode == 403) {
+      // 403 = tài khoản chưa kích hoạt / bị khoá. Ưu tiên thông báo của
+      // server ("Tài khoản chưa được kích hoạt email"); chỉ thay khi body rỗng.
+      if (e.statusCode == 403 && e.message == _generic403) {
         throw const ApiException(
           'Tài khoản chưa được kích hoạt hoặc đã bị khoá. '
           'Vui lòng kiểm tra email kích hoạt.',

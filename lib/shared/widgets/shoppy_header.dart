@@ -313,6 +313,8 @@ class _UserMenu extends ConsumerWidget {
         switch (value) {
           case 'seller':
             AppRouter.sellerChannel(context);
+          case 'shipper':
+            AppRouter.shipperChannel(context);
           case 'logout':
             await ref.read(authProvider.notifier).logout();
             if (context.mounted) AppToast.success(context, 'Đã đăng xuất');
@@ -353,6 +355,17 @@ class _UserMenu extends ConsumerWidget {
                 ),
                 SizedBox(width: 10),
                 Text('Kênh người bán'),
+              ],
+            ),
+          ),
+        if (user.role == UserRole.shipper)
+          const PopupMenuItem(
+            value: 'shipper',
+            child: Row(
+              children: [
+                Icon(Icons.two_wheeler, size: 18, color: AppColors.body),
+                SizedBox(width: 10),
+                Text('Kênh Shipper'),
               ],
             ),
           ),
