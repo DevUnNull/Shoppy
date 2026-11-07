@@ -8,7 +8,7 @@ import 'package:shoppy/features/seller_orders/providers/seller_orders_provider.d
 import 'package:shoppy/features/seller_orders/screens/seller_order_detail_screen.dart';
 import 'package:shoppy/features/seller_orders/services/seller_order_service.dart';
 import 'package:shoppy/features/seller_orders/widgets/seller_order_card.dart';
-import 'package:shoppy/main.dart';
+import 'package:shoppy/features/seller_orders/screens/seller_orders_screen.dart';
 
 import 'helpers/seller_order_fakes.dart';
 
@@ -317,7 +317,7 @@ void main() {
             overrides: [
               sellerOrderRepositoryProvider.overrideWithValue(repository),
             ],
-            child: const MyApp(),
+            child: const MaterialApp(home: SellerOrdersScreen()),
           ),
         );
         await tester.pumpAndSettle();
