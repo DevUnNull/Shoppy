@@ -1,39 +1,34 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import 'core/theme/app_theme.dart';
+import 'features/catalog/screens/home_screen.dart';
 import 'features/seller_orders/screens/seller_orders_screen.dart';
 
 void main() {
-  runApp(const ProviderScope(child: MyApp()));
+  runApp(
+    ProviderScope(
+      // Tắt auto-retry mặc định của Riverpod 3: lỗi hiển thị ngay kèm nút "Thử lại".
+      retry: (retryCount, error) => null,
+      child: const MyApp(home: HomeScreen()),
+    ),
+  );
 }
 
 class MyApp extends StatelessWidget {
-  const MyApp({super.key});
+  const MyApp({super.key, this.home = const SellerOrdersScreen()});
+
+  /// Màn hình gốc. App chạy thật dùng [HomeScreen] (Customer);
+  /// mặc định giữ màn Đơn hàng Shop cho các widget test hiện có.
+  final Widget home;
 
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
       debugShowCheckedModeBanner: false,
-      title: 'Shoppy - Đơn hàng Shop',
-      theme: ThemeData(
-        colorScheme: ColorScheme.fromSeed(seedColor: const Color(0xFFEE4D2D)),
-        scaffoldBackgroundColor: const Color(0xFFF5F5F5),
-        appBarTheme: const AppBarTheme(
-          backgroundColor: Colors.white,
-          surfaceTintColor: Colors.transparent,
-          centerTitle: false,
-        ),
-        cardTheme: CardThemeData(
-          color: Colors.white,
-          elevation: 0,
-          margin: EdgeInsets.zero,
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(12),
-          ),
-        ),
-        useMaterial3: true,
-      ),
-      home: const SellerOrdersScreen(),
+      title: 'Shoppy',
+      theme: AppTheme.light(),
+      home: home,
     );
   }
 }
