@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-
-import 'features/seller_orders/screens/seller_orders_screen.dart';
+import 'package:shoppy/features/shipper_orders/screens/shipper_orders_screen.dart';
 
 void main() {
   runApp(const ProviderScope(child: MyApp()));
@@ -33,7 +32,7 @@ class MyApp extends StatelessWidget {
         ),
         useMaterial3: true,
       ),
-      home: const SellerOrdersScreen(),
+      home: const ShipperOrdersScreen(),
     );
   }
 }

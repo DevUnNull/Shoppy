@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../shipper_orders/screens/shipper_orders_screen.dart';
+
 import '../models/seller_order.dart';
 import '../models/seller_order_status.dart';
 import '../providers/seller_orders_provider.dart';
@@ -71,6 +73,17 @@ class _SellerOrdersScreenState extends ConsumerState<SellerOrdersScreen> {
       child: Scaffold(
         appBar: AppBar(
           title: const Text('Đơn hàng Shop'),
+          actions: [
+            TextButton.icon(
+              onPressed: () => Navigator.of(context).push(
+                MaterialPageRoute<void>(
+                  builder: (context) => const ShipperOrdersScreen(),
+                ),
+              ),
+              icon: const Icon(Icons.delivery_dining),
+              label: const Text('Tài xế'),
+            ),
+          ],
           bottom: TabBar(
             isScrollable: true,
             tabAlignment: TabAlignment.start,
