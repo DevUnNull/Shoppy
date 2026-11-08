@@ -14,7 +14,7 @@ import '../features/orders/screens/my_orders_screen.dart';
 import '../features/orders/screens/order_detail_screen.dart';
 import '../features/partner/screens/partner_register_screen.dart';
 import '../features/profile/screens/profile_screen.dart';
-import '../features/seller_orders/screens/seller_orders_screen.dart';
+import '../features/seller_shop/screens/seller_home_screen.dart';
 import '../features/shipper_orders/screens/shipper_orders_screen.dart';
 import '../features/shop/screens/shop_screen.dart';
 import '../features/wallet/screens/wallet_screen.dart';
@@ -65,7 +65,7 @@ abstract final class AppRouter {
       _push(context, ShopScreen(shopId: shopId));
 
   static Future<void> sellerChannel(BuildContext context) =>
-      _push(context, const SellerOrdersScreen());
+      _push(context, const SellerHomeScreen());
 
   static Future<void> shipperChannel(BuildContext context) =>
       _push(context, const ShipperOrdersScreen());
