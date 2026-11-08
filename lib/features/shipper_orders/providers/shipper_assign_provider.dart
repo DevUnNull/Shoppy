@@ -1,5 +1,6 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../../core/utils/session_request.dart';
 import '../models/shipper_order.dart';
 import '../services/shipper_order_service.dart';
 import 'shipper_orders_provider.dart';
@@ -19,9 +20,13 @@ class ShipperAssignNotifier extends Notifier<ShipperAssignState> {
   ShipperAssignNotifier(this.orderId);
   final int orderId;
   @override
-  ShipperAssignState build() => const ShipperAssignState();
+  ShipperAssignState build() {
+    ref.watch(shipperOrderRepositoryProvider);
+    return const ShipperAssignState();
+  }
 
   Future<bool> assign(ShipperOrder order) async {
+    final currentRef = ref;
     if (state.isBusy || state.needsCheck) return false;
     if (order.id != orderId || !order.canAssign) {
       throw const ShipperOrderException(
@@ -31,7 +36,8 @@ class ShipperAssignNotifier extends Notifier<ShipperAssignState> {
     state = const ShipperAssignState(isBusy: true);
     var needsCheck = true;
     try {
-      final current = await _fetchLatest();
+      final current = await _fetchLatest(currentRef);
+      if (!currentRef.mounted) return false;
       needsCheck = false;
       if (!current.canAssign) {
         throw const ShipperOrderException(
@@ -42,13 +48,16 @@ class ShipperAssignNotifier extends Notifier<ShipperAssignState> {
       try {
         await repository.assign(orderId);
       } catch (_) {
+        if (!currentRef.mounted) return false;
         // PUT timeout có thể đã được BE xử lý. Không tự gửi lại PUT.
         needsCheck = true;
-        final latest = await _fetchLatest();
+        final latest = await _fetchLatest(currentRef);
+        if (!currentRef.mounted) return false;
         needsCheck = false;
         if (latest.status == 'SHIPPING') {
           needsCheck = true;
           final mine = await repository.getMyDeliveries();
+          if (!currentRef.mounted) return false;
           needsCheck = false;
           if (mine.any((order) => order.id == orderId)) return true;
           throw const ShipperOrderException('Đơn đã được tài xế khác nhận.');
@@ -60,8 +69,10 @@ class ShipperAssignNotifier extends Notifier<ShipperAssignState> {
         }
         rethrow;
       }
+      if (!currentRef.mounted) return false;
       needsCheck = true;
-      final latest = await _fetchLatest();
+      final latest = await _fetchLatest(currentRef);
+      if (!currentRef.mounted) return false;
       needsCheck = latest.status != 'SHIPPING';
       if (needsCheck) {
         throw const ShipperOrderException(
@@ -69,8 +80,11 @@ class ShipperAssignNotifier extends Notifier<ShipperAssignState> {
         );
       }
       return true;
+    } catch (_) {
+      if (!currentRef.mounted) return false;
+      rethrow;
     } finally {
-      if (ref.mounted) {
+      if (currentRef.mounted) {
         state = ShipperAssignState(needsCheck: needsCheck);
         ref.invalidate(availableShipperOrdersProvider);
         ref.invalidate(myShipperDeliveriesProvider);
@@ -78,21 +92,25 @@ class ShipperAssignNotifier extends Notifier<ShipperAssignState> {
     }
   }
 
-  Future<ShipperOrder> _fetchLatest() {
+  Future<ShipperOrder> _fetchLatest(Ref currentRef) {
+    if (!currentRef.mounted) {
+      throw const ShipperOrderException('Phiên làm việc đã thay đổi.');
+    }
     final provider = shipperOrderDetailProvider(orderId);
-    ref.invalidate(provider);
-    return ref.read(provider.future);
+    currentRef.invalidate(provider);
+    return waitForSession(currentRef, currentRef.read(provider.future));
   }
 
   Future<void> checkStatus() async {
+    final currentRef = ref;
     if (state.isBusy) return;
     state = const ShipperAssignState(isBusy: true, needsCheck: true);
     var needsCheck = true;
     try {
-      await _fetchLatest();
+      await _fetchLatest(currentRef);
       needsCheck = false;
     } finally {
-      if (ref.mounted) {
+      if (currentRef.mounted) {
         state = ShipperAssignState(needsCheck: needsCheck);
         ref.invalidate(availableShipperOrdersProvider);
         ref.invalidate(myShipperDeliveriesProvider);

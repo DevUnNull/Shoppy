@@ -29,7 +29,7 @@ class ShipperOrderService {
               sendTimeout: const Duration(seconds: 30),
             ),
           ),
-      _token = token ?? ApiConfig.shipperJwtToken;
+      _token = token ?? '';
   final Dio _dio;
   final String _token;
 
@@ -70,7 +70,7 @@ class ShipperOrderService {
   }) async {
     if (_token.trim().isEmpty) {
       throw const ShipperOrderException(
-        'Chưa có token Shipper. Hãy điền shipperJwtToken trong api_config.dart.',
+        'Vui lòng đăng nhập tài khoản Shipper để sử dụng chức năng giao hàng và COD.',
       );
     }
     try {
@@ -102,13 +102,13 @@ class ShipperOrderService {
       final code = error.response?.statusCode;
       if (code == 401) {
         throw const ShipperOrderException(
-          'JWT hết hạn hoặc không hợp lệ. Hãy cập nhật token Shipper rồi khởi động lại ứng dụng.',
+          'Phiên đăng nhập đã hết hạn hoặc không hợp lệ. Vui lòng đăng nhập lại.',
           statusCode: 401,
         );
       }
       if (code == 403) {
         throw const ShipperOrderException(
-          'Không đủ quyền thực hiện thao tác. Hãy kiểm tra token SHIPPER và quyền API phía backend.',
+          'Tài khoản không đủ quyền thực hiện thao tác. Cần tài khoản SHIPPER có quyền truy cập.',
           statusCode: 403,
         );
       }

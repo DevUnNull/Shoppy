@@ -50,7 +50,11 @@ final codRemittanceProvider =
 class CodRemittanceNotifier extends Notifier<CodRemittanceState> {
   _PendingRemittance? _pending;
   @override
-  CodRemittanceState build() => const CodRemittanceState();
+  CodRemittanceState build() {
+    ref.watch(shipperCodRepositoryProvider);
+    _pending = null;
+    return const CodRemittanceState();
+  }
 
   void startNew() {
     if (state.isBusy || state.needsCheck) return;
@@ -59,15 +63,18 @@ class CodRemittanceNotifier extends Notifier<CodRemittanceState> {
   }
 
   Future<bool> submit(int amount, String note) async {
+    final currentRef = ref;
     if (state.isBusy || state.needsCheck || state.completed) return false;
     state = CodRemittanceState(isBusy: true, amount: amount, note: note);
     var sent = false;
     try {
       final repository = ref.read(shipperCodRepositoryProvider);
       final balance = await repository.getBalance();
+      if (!currentRef.mounted) return false;
       final error = validateCodRemittance('$amount', balance.currentBalance);
       if (error != null) throw CodAmountException(error);
       final transactions = await repository.getTransactions();
+      if (!currentRef.mounted) return false;
       _pending = _PendingRemittance(
         amount,
         note,
@@ -79,6 +86,7 @@ class CodRemittanceNotifier extends Notifier<CodRemittanceState> {
         sent = true;
         transaction = await repository.remit(amount, note);
       } catch (error) {
+        if (!currentRef.mounted) return false;
         // Lỗi từ chối rõ ràng cho phép sửa/thử lại. Lỗi mạng, timeout, 5xx
         // hoặc phản hồi không đọc được có thể xảy ra sau khi BE đã ghi tiền.
         final code = error is ShipperOrderException ? error.statusCode : null;
@@ -95,8 +103,9 @@ class CodRemittanceNotifier extends Notifier<CodRemittanceState> {
           message: 'Chưa xác định được kết quả nộp tiền. Đang kiểm tra số dư và lịch sử.',
         );
         try {
-          await _checkPending();
+          await _checkPending(currentRef);
         } catch (checkError) {
+          if (!currentRef.mounted) return false;
           state = CodRemittanceState(
             isBusy: true,
             needsCheck: true,
@@ -105,9 +114,11 @@ class CodRemittanceNotifier extends Notifier<CodRemittanceState> {
             message: 'Chưa kiểm tra được kết quả. $checkError',
           );
         }
+        if (!currentRef.mounted) return false;
         if (state.completed) return true;
         throw ShipperOrderException(state.message);
       }
+      if (!currentRef.mounted) return false;
       _pending = null;
       state = CodRemittanceState(
         completed: true,
@@ -118,7 +129,7 @@ class CodRemittanceNotifier extends Notifier<CodRemittanceState> {
       );
       return true;
     } finally {
-      if (ref.mounted) {
+      if (currentRef.mounted) {
         _unlock();
         // Không chỉnh số dư tại chỗ: các màn hình phải đọc lại backend.
         if (sent) {
@@ -130,12 +141,14 @@ class CodRemittanceNotifier extends Notifier<CodRemittanceState> {
     }
   }
 
-  Future<void> _checkPending() async {
+  Future<void> _checkPending(Ref currentRef) async {
     final pending = _pending;
     if (pending == null) return;
-    final repository = ref.read(shipperCodRepositoryProvider);
+    final repository = currentRef.read(shipperCodRepositoryProvider);
     final balance = await repository.getBalance();
+    if (!currentRef.mounted) return;
     final transactions = await repository.getTransactions();
+    if (!currentRef.mounted) return;
     final matching = transactions
         .where(
           (item) =>
@@ -172,6 +185,7 @@ class CodRemittanceNotifier extends Notifier<CodRemittanceState> {
   }
 
   Future<bool> checkResult() async {
+    final currentRef = ref;
     if (state.isBusy || !state.needsCheck) return false;
     state = CodRemittanceState(
       isBusy: true,
@@ -182,10 +196,11 @@ class CodRemittanceNotifier extends Notifier<CodRemittanceState> {
       transaction: state.transaction,
     );
     try {
-      await _checkPending();
+      await _checkPending(currentRef);
+      if (!currentRef.mounted) return false;
       return state.completed;
     } finally {
-      if (ref.mounted) {
+      if (currentRef.mounted) {
         _unlock();
         _refreshData();
       }

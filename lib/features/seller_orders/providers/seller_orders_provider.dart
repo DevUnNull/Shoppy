@@ -1,12 +1,15 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../auth/providers/auth_provider.dart';
 import '../models/seller_order.dart';
 import '../models/seller_order_status.dart';
 import '../repositories/seller_order_repository.dart';
 import '../services/seller_order_service.dart';
 
 final sellerOrderServiceProvider = Provider<SellerOrderService>((ref) {
-  final service = SellerOrderService();
+  final token = ref.watch(authProvider.select((session) => session.token));
+  ref.watch(authProvider.select((session) => session.user?.id));
+  final service = SellerOrderService(token: token);
   ref.onDispose(service.close);
   return service;
 });
@@ -70,9 +73,24 @@ final sellerOrdersProvider =
 
 class SellerOrdersNotifier extends Notifier<SellerOrdersState> {
   int _requestId = 0;
+  SellerOrderStatus _selectedStatus = SellerOrderStatus.pending;
 
   @override
-  SellerOrdersState build() => const SellerOrdersState();
+  SellerOrdersState build() {
+    // Repository đổi khi đăng nhập/đăng xuất: bỏ dữ liệu của tài khoản trước.
+    ref.watch(sellerOrderRepositoryProvider);
+    _requestId++;
+    final currentRef = ref;
+    if (!currentRef.isFirstBuild) {
+      Future.microtask(() {
+        if (currentRef.mounted) _loadFirstPage(_selectedStatus);
+      });
+    }
+    return SellerOrdersState(
+      status: _selectedStatus,
+      isLoading: !currentRef.isFirstBuild,
+    );
+  }
 
   Future<void> selectStatus(SellerOrderStatus status) => _loadFirstPage(status);
 
@@ -83,6 +101,8 @@ class SellerOrdersNotifier extends Notifier<SellerOrdersState> {
   }
 
   Future<void> _loadFirstPage(SellerOrderStatus status) async {
+    final currentRef = ref;
+    _selectedStatus = status;
     final requestId = ++_requestId;
     // Xóa ngay danh sách tab cũ và luôn bắt đầu lại từ trang 0.
     state = SellerOrdersState(status: status, isLoading: true);
@@ -90,7 +110,7 @@ class SellerOrdersNotifier extends Notifier<SellerOrdersState> {
       final result = await ref
           .read(sellerOrderRepositoryProvider)
           .getOrders(status: status.value, page: 0);
-      if (!ref.mounted || requestId != _requestId) return;
+      if (!currentRef.mounted || requestId != _requestId) return;
       state = SellerOrdersState(
         status: status,
         orders: _mergeOrders([], result.orders, status),
@@ -98,12 +118,13 @@ class SellerOrdersNotifier extends Notifier<SellerOrdersState> {
         hasNext: result.hasNext,
       );
     } catch (error) {
-      if (!ref.mounted || requestId != _requestId) return;
+      if (!currentRef.mounted || requestId != _requestId) return;
       state = SellerOrdersState(status: status, error: error.toString());
     }
   }
 
   Future<void> loadMore() async {
+    final currentRef = ref;
     if (state.isLoading ||
         state.isLoadingMore ||
         !state.hasNext ||
@@ -117,7 +138,7 @@ class SellerOrdersNotifier extends Notifier<SellerOrdersState> {
       final result = await ref
           .read(sellerOrderRepositoryProvider)
           .getOrders(status: state.status.value, page: nextPage);
-      if (!ref.mounted || requestId != _requestId) return;
+      if (!currentRef.mounted || requestId != _requestId) return;
       state = state.copyWith(
         orders: _mergeOrders(state.orders, result.orders, state.status),
         page: nextPage,
@@ -125,7 +146,7 @@ class SellerOrdersNotifier extends Notifier<SellerOrdersState> {
         isLoadingMore: false,
       );
     } catch (error) {
-      if (!ref.mounted || requestId != _requestId) return;
+      if (!currentRef.mounted || requestId != _requestId) return;
       state = state.copyWith(
         isLoadingMore: false,
         loadMoreError: error.toString(),
