@@ -209,7 +209,7 @@ void main() {
                 .having(
                   (error) => error.message,
                   'message',
-                  contains(code == 401 ? 'JWT' : 'SELLER'),
+                  contains(code == 401 ? 'đăng nhập lại' : 'SELLER'),
                 ),
           ),
         );
@@ -217,7 +217,7 @@ void main() {
     }
   }
 
-  test('Không gửi request khi chưa điền token', () async {
+  test('Không gửi request khi chưa đăng nhập', () async {
     final adapter = MemoryAdapter();
     final service = createService(adapter, token: '  ');
     await expectLater(

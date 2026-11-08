@@ -2,10 +2,10 @@
 
 ## Chạy thử
 
-1. Điền JWT của tài khoản SHIPPER vào `ApiConfig.shipperJwtToken` trong `lib/config/api_config.dart`, không thêm `Bearer`.
-2. JWT Seller vẫn dùng `ApiConfig.jwtToken`.
-3. Khởi động lại app sau khi cài plugin mở link.
-4. `main.dart` hiện mở trực tiếp màn Shipper. Nếu mở màn **Đơn hàng Shop**, có thể bấm **Tài xế** ở góc trên bên phải.
+1. Đăng nhập tài khoản có vai trò SHIPPER bằng màn đăng nhập của app.
+2. Mở menu tài khoản → **Kênh Shipper**. Tài khoản SELLER vào **Kênh người bán** để quản lý đơn của shop.
+3. JWT được lấy từ phiên đăng nhập; `api_config.dart` chỉ giữ baseUrl, không nhập token thủ công.
+4. `main.dart` mở trang chủ Customer. Phiên đã lưu được khôi phục khi mở lại app. Khi đăng xuất/đổi tài khoản, dữ liệu đơn/COD và trạng thái thao tác được tạo lại theo phiên mới; response phiên cũ không được cập nhật vào phiên mới.
 
 Màn Shipper có ba tab: **Chờ nhận**, **Đang giao** và **Đã giao**.
 
@@ -69,6 +69,6 @@ App không tự gửi lại POST. Trước POST, app lưu ảnh chụp số dư 
 - Chưa xác định được: giữ nội dung form, khóa nút nộp, cho kiểm tra lại hoặc xem lịch sử. Đóng/mở form trong cùng phiên không xóa khóa.
 - Từ chối rõ ràng như HTTP 400/401/403/422 hoặc status error: cho sửa/thử lại thủ công, không tự gửi lại.
 
-Đối chiếu amount/note không phải mã idempotency của backend. Khóa hiện giữ trong phiên ứng dụng, không bảo đảm qua việc khởi động lại app. Để bảo đảm chống trùng giữa nhiều thiết bị/lần khởi động, backend cần hỗ trợ mã tham chiếu/idempotency và xử lý nguyên tử. Kiểm thử nộp tiền hiện dùng BE giả lập; không gửi tiền lên backend thật.
+Đối chiếu amount/note không phải mã idempotency của backend. Khóa hiện giữ trong phiên đăng nhập đang chạy, không bảo đảm qua việc đăng xuất/đổi tài khoản hoặc khởi động lại app. Để bảo đảm chống trùng giữa nhiều thiết bị/lần khởi động, backend cần hỗ trợ mã tham chiếu/idempotency và xử lý nguyên tử. Kiểm thử nộp tiền hiện dùng BE giả lập; không gửi tiền lên backend thật.
 
 Nếu dùng Flutter Web, backend cần cho phép thêm POST và Content-Type trong cấu hình CORS.

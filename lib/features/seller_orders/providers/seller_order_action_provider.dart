@@ -1,5 +1,6 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../../core/utils/session_request.dart';
 import '../models/seller_order.dart';
 import '../services/seller_order_service.dart';
 import 'seller_orders_provider.dart';
@@ -20,7 +21,10 @@ final sellerOrderActionProvider =
 
 class SellerOrderActionNotifier extends Notifier<SellerOrderActionState> {
   @override
-  SellerOrderActionState build() => const SellerOrderActionState();
+  SellerOrderActionState build() {
+    ref.watch(sellerOrderRepositoryProvider);
+    return const SellerOrderActionState();
+  }
 
   Future<bool> readyToShip(SellerOrder order) =>
       _submit(order, cancelReason: null);
@@ -36,6 +40,7 @@ class SellerOrderActionNotifier extends Notifier<SellerOrderActionState> {
     SellerOrder order, {
     required String? cancelReason,
   }) async {
+    final currentRef = ref;
     if (state.isBusy || state.needsReload) return false;
     if (order.status != 'PROCESSING') {
       throw const SellerOrderException(
@@ -54,10 +59,11 @@ class SellerOrderActionNotifier extends Notifier<SellerOrderActionState> {
           await repository.cancelOrder(order.id, cancelReason);
         }
       } catch (_) {
+        if (!currentRef.mounted) return false;
         // Tải lại cả khi PUT báo lỗi: đơn có thể đã đổi trạng thái ở nơi khác,
         // hoặc backend đã xử lý xong trước khi kết nối bị ngắt.
         try {
-          await _fetchLatest(order.id);
+          await _fetchLatest(currentRef, order.id);
         } catch (_) {
           needsReload = true;
         }
@@ -65,9 +71,12 @@ class SellerOrderActionNotifier extends Notifier<SellerOrderActionState> {
       }
 
       try {
-        final latest = await _fetchLatest(order.id);
+        if (!currentRef.mounted) return false;
+        final latest = await _fetchLatest(currentRef, order.id);
+        if (!currentRef.mounted) return false;
         needsReload = latest.status == 'PROCESSING';
       } catch (_) {
+        if (!currentRef.mounted) return false;
         needsReload = true;
       }
       if (needsReload) {
@@ -77,27 +86,34 @@ class SellerOrderActionNotifier extends Notifier<SellerOrderActionState> {
       }
       return true;
     } finally {
-      if (ref.mounted) state = SellerOrderActionState(needsReload: needsReload);
+      if (currentRef.mounted) {
+        state = SellerOrderActionState(needsReload: needsReload);
+      }
     }
   }
 
-  Future<SellerOrder> _fetchLatest(int orderId) {
-    if (!ref.mounted) throw const SellerOrderException('Màn hình đã đóng.');
+  Future<SellerOrder> _fetchLatest(Ref currentRef, int orderId) {
+    if (!currentRef.mounted) {
+      throw const SellerOrderException('Phiên làm việc đã thay đổi.');
+    }
     final provider = sellerOrderDetailProvider(orderId);
-    ref.invalidate(provider);
-    return ref.read(provider.future);
+    currentRef.invalidate(provider);
+    return waitForSession(currentRef, currentRef.read(provider.future));
   }
 
   Future<void> reloadDetail(int orderId) async {
+    final currentRef = ref;
     if (state.isBusy) return;
     final wasNeedsReload = state.needsReload;
     state = SellerOrderActionState(isBusy: true, needsReload: wasNeedsReload);
     var needsReload = wasNeedsReload;
     try {
-      await _fetchLatest(orderId);
+      await _fetchLatest(currentRef, orderId);
       needsReload = false;
     } finally {
-      if (ref.mounted) state = SellerOrderActionState(needsReload: needsReload);
+      if (currentRef.mounted) {
+        state = SellerOrderActionState(needsReload: needsReload);
+      }
     }
   }
 }

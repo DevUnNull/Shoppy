@@ -24,7 +24,7 @@ class SellerOrderService {
               sendTimeout: const Duration(seconds: 30),
             ),
           ),
-      _token = token ?? ApiConfig.jwtToken;
+      _token = token ?? '';
 
   final Dio _dio;
   final String _token;
@@ -76,7 +76,7 @@ class SellerOrderService {
     final token = _token.trim();
     if (token.isEmpty) {
       throw const SellerOrderException(
-        'Chưa có token Seller. Hãy điền jwtToken trong lib/config/api_config.dart.',
+        'Vui lòng đăng nhập tài khoản Seller để quản lý đơn hàng.',
       );
     }
 
@@ -113,13 +113,13 @@ class SellerOrderService {
       // Luôn có thông báo cho 401/403, kể cả backend trả body rỗng hoặc HTML.
       if (code == 401) {
         throw const SellerOrderException(
-          'JWT đã hết hạn hoặc không hợp lệ. Hãy cập nhật token Seller rồi khởi động lại ứng dụng.',
+          'Phiên đăng nhập đã hết hạn hoặc không hợp lệ. Vui lòng đăng nhập lại.',
           statusCode: 401,
         );
       }
       if (code == 403) {
         throw const SellerOrderException(
-          'Tài khoản không đủ quyền. Hãy sử dụng token có vai trò SELLER và quyền truy cập shop.',
+          'Tài khoản không đủ quyền. Cần tài khoản SELLER có quyền truy cập shop.',
           statusCode: 403,
         );
       }

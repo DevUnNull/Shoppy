@@ -1,11 +1,14 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../auth/providers/auth_provider.dart';
 import '../models/shipper_order.dart';
 import '../repositories/shipper_order_repository.dart';
 import '../services/shipper_order_service.dart';
 
 final shipperOrderServiceProvider = Provider<ShipperOrderService>((ref) {
-  final service = ShipperOrderService();
+  final token = ref.watch(authProvider.select((session) => session.token));
+  ref.watch(authProvider.select((session) => session.user?.id));
+  final service = ShipperOrderService(token: token);
   ref.onDispose(service.close);
   return service;
 });

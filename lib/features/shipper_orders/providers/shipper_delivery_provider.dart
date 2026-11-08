@@ -1,5 +1,6 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../../core/utils/session_request.dart';
 import '../models/shipper_order.dart';
 import '../services/shipper_order_service.dart';
 import 'shipper_assign_provider.dart';
@@ -20,12 +21,16 @@ class ShipperDeliveryNotifier extends Notifier<ShipperDeliveryState> {
   ShipperDeliveryNotifier(this.orderId);
   final int orderId;
   @override
-  ShipperDeliveryState build() => const ShipperDeliveryState();
+  ShipperDeliveryState build() {
+    ref.watch(shipperOrderRepositoryProvider);
+    return const ShipperDeliveryState();
+  }
 
   Future<bool> delivered(
     ShipperOrder order, {
     bool cashCollected = false,
   }) async {
+    final currentRef = ref;
     if (state.isBusy ||
         state.needsCheck ||
         ref.read(shipperAssignProvider(orderId)).isBusy) {
@@ -53,9 +58,11 @@ class ShipperDeliveryNotifier extends Notifier<ShipperDeliveryState> {
     var needsCheck = true;
     var sentToBackend = false;
     try {
-      final latest = await _fetchLatest();
+      final latest = await _fetchLatest(currentRef);
+      if (!currentRef.mounted) return false;
       final repository = ref.read(shipperOrderRepositoryProvider);
       final mine = await repository.getMyDeliveries();
+      if (!currentRef.mounted) return false;
       needsCheck = false;
       if (latest.status != 'SHIPPING') {
         throw const ShipperOrderException(
@@ -82,12 +89,15 @@ class ShipperDeliveryNotifier extends Notifier<ShipperDeliveryState> {
         sentToBackend = true;
         await repository.delivered(orderId);
       } catch (_) {
+        if (!currentRef.mounted) return false;
         // Không tự lặp PUT. Sau timeout, phải đọc trạng thái và kiểm tra lịch sử
         // của chính token này để xác định backend đã giao thành công hay chưa.
         needsCheck = true;
-        final updated = await _fetchLatest();
+        final updated = await _fetchLatest(currentRef);
+        if (!currentRef.mounted) return false;
         if (updated.status == 'DELIVERED') {
           final history = await repository.getMyDeliveries(status: 'DELIVERED');
+          if (!currentRef.mounted) return false;
           needsCheck = false;
           if (updated.shipperId != null &&
               history.any(
@@ -109,8 +119,10 @@ class ShipperDeliveryNotifier extends Notifier<ShipperDeliveryState> {
         }
         rethrow;
       }
+      if (!currentRef.mounted) return false;
       needsCheck = true;
-      final updated = await _fetchLatest();
+      final updated = await _fetchLatest(currentRef);
+      if (!currentRef.mounted) return false;
       needsCheck = updated.status != 'DELIVERED';
       if (needsCheck) {
         throw const ShipperOrderException(
@@ -118,8 +130,11 @@ class ShipperDeliveryNotifier extends Notifier<ShipperDeliveryState> {
         );
       }
       return true;
+    } catch (_) {
+      if (!currentRef.mounted) return false;
+      rethrow;
     } finally {
-      if (ref.mounted) {
+      if (currentRef.mounted) {
         state = ShipperDeliveryState(needsCheck: needsCheck);
         _refreshLists();
         // Kể cả mất phản hồi, backend có thể đã ghi COD. Chỉ tải lại dữ liệu.
@@ -128,24 +143,29 @@ class ShipperDeliveryNotifier extends Notifier<ShipperDeliveryState> {
     }
   }
 
-  Future<ShipperOrder> _fetchLatest() {
+  Future<ShipperOrder> _fetchLatest(Ref currentRef) {
+    if (!currentRef.mounted) {
+      throw const ShipperOrderException('Phiên làm việc đã thay đổi.');
+    }
     final provider = shipperOrderDetailProvider(orderId);
-    ref.invalidate(provider);
-    return ref.read(provider.future);
+    currentRef.invalidate(provider);
+    return waitForSession(currentRef, currentRef.read(provider.future));
   }
 
   Future<void> checkStatus() async {
+    final currentRef = ref;
     if (state.isBusy || ref.read(shipperAssignProvider(orderId)).isBusy) return;
     state = const ShipperDeliveryState(isBusy: true, needsCheck: true);
     var needsCheck = true;
     try {
-      final order = await _fetchLatest();
+      final order = await _fetchLatest(currentRef);
+      if (!currentRef.mounted) return;
       needsCheck = false;
       if (order.status == 'DELIVERED' && order.paymentMethod == 'COD') {
         _refreshCod();
       }
     } finally {
-      if (ref.mounted) {
+      if (currentRef.mounted) {
         state = ShipperDeliveryState(needsCheck: needsCheck);
         _refreshLists();
       }
