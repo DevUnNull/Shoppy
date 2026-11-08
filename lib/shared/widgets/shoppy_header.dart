@@ -311,6 +311,8 @@ class _UserMenu extends ConsumerWidget {
       position: PopupMenuPosition.under,
       onSelected: (value) async {
         switch (value) {
+          case 'admin':
+            AppRouter.adminChannel(context);
           case 'seller':
             AppRouter.sellerChannel(context);
           case 'shipper':
@@ -324,6 +326,21 @@ class _UserMenu extends ConsumerWidget {
         }
       },
       itemBuilder: (_) => [
+        if (user.role == UserRole.admin)
+          const PopupMenuItem(
+            value: 'admin',
+            child: Row(
+              children: [
+                Icon(
+                  Icons.admin_panel_settings_outlined,
+                  size: 18,
+                  color: AppColors.body,
+                ),
+                SizedBox(width: 10),
+                Flexible(child: Text('Trung tâm quản trị')),
+              ],
+            ),
+          ),
         for (final s in [
           AccountSection.profile,
           AccountSection.orders,
@@ -337,8 +354,10 @@ class _UserMenu extends ConsumerWidget {
               children: [
                 Icon(s.icon, size: 18, color: AppColors.body),
                 const SizedBox(width: 10),
-                Text(
-                  s == AccountSection.profile ? 'Tài khoản của tôi' : s.label,
+                Flexible(
+                  child: Text(
+                    s == AccountSection.profile ? 'Tài khoản của tôi' : s.label,
+                  ),
                 ),
               ],
             ),

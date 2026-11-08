@@ -5,6 +5,7 @@ import '../../../app/app_router.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/utils/validators.dart';
 import '../../../core/widgets/app_toast.dart';
+import '../models/user.dart';
 import '../providers/auth_provider.dart';
 import '../widgets/auth_layout.dart';
 import '../widgets/auth_text_field.dart';
@@ -44,6 +45,10 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
           .login(email: _email.text, password: _password.text);
       if (!mounted) return;
       AppToast.success(context, 'Xin chào, ${user.displayName}!');
+      if (user.role == UserRole.admin) {
+        AppRouter.adminChannel(context, replace: true);
+        return;
+      }
       final navigator = Navigator.of(context);
       navigator.canPop() ? navigator.pop(true) : AppRouter.backToHome(context);
     } catch (e) {
