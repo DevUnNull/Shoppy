@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../features/account/widgets/account_shell.dart';
+import '../features/admin/screens/admin_hub_screen.dart';
 import '../features/auth/screens/forgot_password_screen.dart';
 import '../features/auth/screens/login_screen.dart';
 import '../features/auth/screens/register_screen.dart';
@@ -69,6 +70,23 @@ abstract final class AppRouter {
 
   static Future<void> shipperChannel(BuildContext context) =>
       _push(context, const ShipperOrdersScreen());
+
+  /// Admin được chuyển sang Hub riêng; không tiếp tục các callback mua hàng
+  /// đang chờ kết quả đăng nhập ở phân hệ khách hàng.
+  static Future<void> adminChannel(
+    BuildContext context, {
+    bool replace = false,
+  }) async {
+    final navigator = Navigator.of(context);
+    final route = MaterialPageRoute<void>(
+      builder: (_) => const AdminHubScreen(),
+    );
+    if (replace) {
+      await navigator.pushReplacement<void, bool>(route, result: false);
+    } else {
+      await navigator.push<void>(route);
+    }
+  }
 
   static void backToHome(BuildContext context) =>
       Navigator.of(context).popUntil((route) => route.isFirst);
