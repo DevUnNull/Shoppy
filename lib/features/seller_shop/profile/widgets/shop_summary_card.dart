@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../../../../core/utils/formatters.dart';
 import '../models/shop.dart';
 
 class ShopSummaryCard extends StatelessWidget {
@@ -35,7 +36,7 @@ class ShopSummaryCard extends StatelessWidget {
                 Expanded(
                   child: _SummaryValue(
                     label: 'Số dư',
-                    value: '${shop.balance.toStringAsFixed(2)} đ',
+                    value: formatVnd(shop.balance),
                     icon: Icons.account_balance_wallet_outlined,
                   ),
                 ),
