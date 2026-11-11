@@ -7,6 +7,8 @@ class Shop {
     required this.logoUrl,
     required this.address,
     required this.balance,
+    required this.totalProducts,
+    required this.totalOrders,
     required this.status,
     required this.createdAt,
   });
@@ -18,6 +20,8 @@ class Shop {
   final String? logoUrl;
   final String? address;
   final double balance;
+  final int totalProducts;
+  final int totalOrders;
   final String status;
   final DateTime? createdAt;
 
@@ -42,6 +46,8 @@ class Shop {
         'address',
       ),
       balance: balance.toDouble(),
+      totalProducts: _count(json['totalProducts'], 'totalProducts'),
+      totalOrders: _count(json['totalOrders'], 'totalOrders'),
       status: status,
       createdAt: _dateTime(json['createdAt'], 'createdAt'),
     );
@@ -55,6 +61,12 @@ class Shop {
 
   static num _number(Object? value, String field) {
     if (value is num) return value;
+    throw FormatException('Shop field "$field" must be a number.');
+  }
+
+  static int _count(Object? value, String field) {
+    if (value == null) return 0;
+    if (value is num) return value.toInt();
     throw FormatException('Shop field "$field" must be a number.');
   }
 

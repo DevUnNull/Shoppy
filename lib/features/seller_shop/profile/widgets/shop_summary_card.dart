@@ -52,6 +52,26 @@ class ShopSummaryCard extends StatelessWidget {
                 ),
               ],
             ),
+            const SizedBox(height: 12),
+            Row(
+              children: [
+                Expanded(
+                  child: _SummaryValue(
+                    label: 'Tổng sản phẩm',
+                    value: '${shop.totalProducts}',
+                    icon: Icons.inventory_2_outlined,
+                  ),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: _SummaryValue(
+                    label: 'Tổng đơn hàng',
+                    value: '${shop.totalOrders}',
+                    icon: Icons.shopping_bag_outlined,
+                  ),
+                ),
+              ],
+            ),
             if (shop.createdAt case final createdAt?) ...[
               const SizedBox(height: 18),
               const Divider(height: 1),
