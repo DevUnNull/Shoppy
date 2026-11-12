@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 
 import '../../../core/theme/app_colors.dart';
+import 'admin_shipping_fee_field.dart';
 
 typedef AdminCatalogSave = Future<void> Function(
   Map<String, dynamic> fields,
@@ -67,6 +68,7 @@ class _AdminCatalogFormState extends State<_AdminCatalogForm> {
         'parentId',
         'displayOrder',
         'code',
+        'baseFee',
         'phone',
         'email',
         'website',
@@ -148,6 +150,7 @@ class _AdminCatalogFormState extends State<_AdminCatalogForm> {
         'displayOrder': int.parse(_fields['displayOrder']!.text.trim()),
       });
     } else {
+      values['baseFee'] = num.parse(_fields['baseFee']!.text.trim());
       for (final field in ['code', 'phone', 'email', 'website']) {
         final value = _fields[field]!.text.trim();
         // Detail responses may omit existing contact data. Leaving an unknown
@@ -317,7 +320,8 @@ class _AdminCatalogFormState extends State<_AdminCatalogForm> {
                         if (id == null || id <= 0) {
                           return 'ID danh mục cha phải là số nguyên dương';
                         }
-                        if (id.toString() == widget.initial?['id']?.toString()) {
+                        if (id.toString() ==
+                            widget.initial?['id']?.toString()) {
                           return 'Danh mục không thể là cha của chính nó';
                         }
                         return null;
@@ -330,12 +334,17 @@ class _AdminCatalogFormState extends State<_AdminCatalogForm> {
                       validator: (value) {
                         final order = int.tryParse(value?.trim() ?? '');
                         return order == null || order < 0
-                            ? 'Nhập số nguyên không âm'
+                            ? 'Nhập cược phí'
                             : null;
                       },
                     ),
                   ] else ...[
                     _field('code', 'Mã hãng *', validator: _required),
+                    AdminShippingFeeField(
+                      controller: _fields['baseFee']!,
+                      enabled: !_busy,
+                      onSubmitted: (_) => _submit(),
+                    ),
                     _field(
                       'phone',
                       'Số điện thoại',

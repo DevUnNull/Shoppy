@@ -102,6 +102,7 @@ class AdminService {
     int? id,
     required String name,
     required String code,
+    required num baseFee,
     String? phone,
     String? email,
     String? website,
@@ -111,9 +112,13 @@ class AdminService {
     if (name.trim().isEmpty || code.trim().isEmpty) {
       throw ArgumentError('Tên và mã đơn vị vận chuyển không được để trống.');
     }
+    if (!baseFee.isFinite || baseFee < 0) {
+      throw ArgumentError('Cước phí phải là số không âm hợp lệ.');
+    }
     final body = <String, dynamic>{
       'name': name.trim(),
       'code': code.trim(),
+      'baseFee': baseFee,
       if (phone != null) 'phone': phone.trim(),
       if (email != null) 'email': email.trim(),
       if (website != null) 'website': website.trim(),

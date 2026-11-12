@@ -119,6 +119,7 @@ void main() {
         'id': 1,
         'name': 'Giao nhanh',
         'code': 'GN',
+        'baseFee': 30000,
         'email': 'bad',
         'website': 'ftp://test.vn',
       },
@@ -140,6 +141,7 @@ void main() {
     expect(values, {
       'name': 'Giao nhanh',
       'code': 'GN',
+      'baseFee': 30000,
       'phone': '19001206',
       'email': 'support@test.vn',
       'website': 'https://test.vn',
@@ -153,13 +155,13 @@ void main() {
     await openForm(
       tester,
       category: false,
-      initial: {'id': 1, 'name': 'Giao nhanh', 'code': 'GN'},
+      initial: {'id': 1, 'name': 'Giao nhanh', 'code': 'GN', 'baseFee': 30000},
       onSave: (fields, _, _) async => values = fields,
     );
     await tester.enterText(field('name'), 'Giao nhanh mới');
     await tester.tap(field('save'));
     await tester.pumpAndSettle();
-    expect(values, {'name': 'Giao nhanh mới', 'code': 'GN'});
+    expect(values, {'name': 'Giao nhanh mới', 'code': 'GN', 'baseFee': 30000});
   });
 
   testWidgets('Editing shipping can clear a known contact explicitly', (
@@ -173,6 +175,7 @@ void main() {
         'id': 1,
         'name': 'Giao nhanh',
         'code': 'GN',
+        'baseFee': 30000,
         'phone': '19001206',
       },
       onSave: (fields, _, _) async => values = fields,
@@ -180,10 +183,17 @@ void main() {
     await tester.enterText(field('phone'), '');
     await tester.tap(field('save'));
     await tester.pumpAndSettle();
-    expect(values, {'name': 'Giao nhanh', 'code': 'GN', 'phone': ''});
+    expect(values, {
+      'name': 'Giao nhanh',
+      'code': 'GN',
+      'baseFee': 30000,
+      'phone': '',
+    });
   });
 
-  testWidgets('Creating shipping keeps optional contact fields', (tester) async {
+  testWidgets('Creating shipping keeps optional contact fields', (
+    tester,
+  ) async {
     Map<String, dynamic>? values;
     await openForm(
       tester,
@@ -192,11 +202,13 @@ void main() {
     );
     await tester.enterText(field('name'), 'Giao nhanh');
     await tester.enterText(field('code'), 'GN');
+    await tester.enterText(field('baseFee'), ' 30000 ');
     await tester.tap(field('save'));
     await tester.pumpAndSettle();
     expect(values, {
       'name': 'Giao nhanh',
       'code': 'GN',
+      'baseFee': 30000,
       'phone': '',
       'email': '',
       'website': '',
@@ -250,6 +262,58 @@ void main() {
     await tester.tap(field('save'));
     await tester.pumpAndSettle();
     expect(calls, 2);
+    expect(find.byType(AlertDialog), findsNothing);
+  });
+
+  testWidgets('Shipping requires a finite nonnegative fee and accepts zero', (
+    tester,
+  ) async {
+    Map<String, dynamic>? saved;
+    await openForm(
+      tester,
+      category: false,
+      onSave: (fields, _, _) async => saved = fields,
+    );
+    await tester.enterText(field('name'), 'Giao nhanh');
+    await tester.enterText(field('code'), 'GN');
+    await tester.tap(field('save'));
+    await tester.pumpAndSettle();
+    expect(find.text('Vui lòng nhập cước phí'), findsOneWidget);
+    expect(saved, isNull);
+    for (final value in ['-1', 'abc', 'NaN', 'Infinity']) {
+      await tester.enterText(field('baseFee'), value);
+      await tester.tap(field('save'));
+      await tester.pumpAndSettle();
+      expect(find.text('Cước phí phải là số không âm hợp lệ'), findsOneWidget);
+      expect(saved, isNull);
+    }
+    await tester.enterText(field('baseFee'), '0');
+    await tester.tap(field('save'));
+    await tester.pumpAndSettle();
+    expect(saved?['baseFee'], 0);
+  });
+
+  testWidgets('Editing shipping prefills and updates its fee', (tester) async {
+    Map<String, dynamic>? saved;
+    await openForm(
+      tester,
+      category: false,
+      initial: {
+        'id': 1,
+        'name': 'Giao nhanh',
+        'code': 'GN',
+        'baseFee': 30000.5,
+      },
+      onSave: (fields, _, _) async => saved = fields,
+    );
+    expect(
+      tester.widget<TextFormField>(field('baseFee')).controller!.text,
+      '30000.5',
+    );
+    await tester.enterText(field('baseFee'), ' 45000.5 ');
+    await tester.tap(field('save'));
+    await tester.pumpAndSettle();
+    expect(saved?['baseFee'], 45000.5);
     expect(find.byType(AlertDialog), findsNothing);
   });
 
