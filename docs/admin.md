@@ -33,7 +33,7 @@ Các danh sách admin nhận `search`, `status`, `page`, `size`; user nhận th�
 - Status User/Shop: `ACTIVE`, `INACTIVE`, `BLOCKED`; role: `CUSTOMER`, `SELLER`, `SHIPPER`, `ADMIN`.
 - Status danh mục/ĐVVC: `ACTIVE`, `INACTIVE`.
 - Danh mục tạo/sửa: `{name, slug, parentId, displayOrder}`. `parentId` là ID cha hoặc `null` cho danh mục gốc. File ảnh dùng field multipart `image`.
-- ĐVVC tạo/sửa: `{name, code, phone, email, website}`. File logo dùng field multipart `logo`.
+- ĐVVC tạo/sửa: `{name, code, baseFee, phone, email, website}`. `baseFee` là cước phí cơ bản (VNĐ), bắt buộc nhập số hữu hạn không âm. File logo dùng field multipart `logo`.
 - Có ảnh thì dùng multipart; không có ảnh dùng JSON. Đổi trạng thái gửi `{status}`, đổi role gửi `{role}`, hủy đơn gửi `{reason}`.
 
 Các thao tác ghi không tự retry. Khi request lỗi, giao diện giữ dữ liệu nhập và hiển thị thông báo backend. Những ràng buộc như danh mục còn sản phẩm, quyền đổi role, quyền hủy đơn và hoàn tiền do backend kiểm tra.

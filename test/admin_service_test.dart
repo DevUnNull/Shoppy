@@ -201,6 +201,7 @@ void main() {
       id: 7,
       name: 'Giao hàng',
       code: 'GH',
+      baseFee: 30000,
       phone: '1900123',
       email: 'ship@example.test',
       website: 'https://example.test',
@@ -215,11 +216,31 @@ void main() {
     expect(Map.fromEntries(company.fields), {
       'name': 'Giao hàng',
       'code': 'GH',
+      'baseFee': '30000',
       'phone': '1900123',
       'email': 'ship@example.test',
       'website': 'https://example.test',
     });
     expect(adapter.calls[1].path, '/admin/shipping-companies/7');
+  });
+
+  test('Cước phí không hợp lệ bị chặn trước khi gửi API', () async {
+    final adapter = _Adapter((_) => _response({'status': 'success'}));
+    final service = _service(adapter);
+    for (final fee in [
+      -1,
+      double.nan,
+      double.infinity,
+      double.negativeInfinity,
+    ]) {
+      await expectLater(
+        service.saveShippingCompany(name: 'Hãng', code: 'GH', baseFee: fee),
+        throwsArgumentError,
+      );
+    }
+    expect(adapter.calls, isEmpty);
+    await service.saveShippingCompany(name: 'Hãng', code: 'GH', baseFee: 0);
+    expect(adapter.calls.single.data['baseFee'], 0);
   });
 
   test('Tạo hãng JSON và chi tiết sai ID được kiểm tra', () async {
@@ -230,9 +251,17 @@ void main() {
       }),
     );
     final service = _service(adapter);
-    await service.saveShippingCompany(name: 'Hãng mới', code: 'MOI');
+    await service.saveShippingCompany(
+      name: 'Hãng mới',
+      code: 'MOI',
+      baseFee: 30000,
+    );
     expect(adapter.calls.single.method, 'POST');
-    expect(adapter.calls.single.data, {'name': 'Hãng mới', 'code': 'MOI'});
+    expect(adapter.calls.single.data, {
+      'name': 'Hãng mới',
+      'code': 'MOI',
+      'baseFee': 30000,
+    });
     await expectLater(
       service.detail(AdminSection.users, 4),
       throwsA(isA<ApiException>()),
@@ -244,12 +273,22 @@ void main() {
     () async {
       final adapter = _Adapter((_) => _response({'status': 'success'}));
       final service = _service(adapter);
-      await service.saveShippingCompany(id: 3, name: 'Hãng', code: 'GH');
-      expect(adapter.calls[0].data, {'name': 'Hãng', 'code': 'GH'});
       await service.saveShippingCompany(
         id: 3,
         name: 'Hãng',
         code: 'GH',
+        baseFee: 30000,
+      );
+      expect(adapter.calls[0].data, {
+        'name': 'Hãng',
+        'code': 'GH',
+        'baseFee': 30000,
+      });
+      await service.saveShippingCompany(
+        id: 3,
+        name: 'Hãng',
+        code: 'GH',
+        baseFee: 30000,
         phone: '',
         email: '   ',
         website: 'https://example.test',
@@ -257,6 +296,7 @@ void main() {
       expect(adapter.calls[1].data, {
         'name': 'Hãng',
         'code': 'GH',
+        'baseFee': 30000,
         'phone': '',
         'email': '',
         'website': 'https://example.test',
